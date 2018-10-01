@@ -14,20 +14,21 @@ sect=""
 vid_name=""
 vid_add=""
 
-flag="0"
-
 while read -r line; do
 
   # echo "$line"
 
-  if [[ $line =~ $videos_regex ]]; then
-    # addres of the video
-    vid_add="${BASH_REMATCH[1]}"
-
-  elif [[ $line =~ $section_regex ]]; then
+  # new section
+  if [[ $line =~ $section_regex ]]; then
     sect="${BASH_REMATCH[1]}"
     echo "$sect"
 
+  # otherwise get video address
+  elif [[ $line =~ $videos_regex ]]; then
+    # addres of the video
+    vid_add="${BASH_REMATCH[1]}"
+
+  # if we find a name we got the name and the video address, we can download it!
   elif [[ $line =~ $name_regex ]]; then
     vid_name="$line"
     echo "$vid_name"
