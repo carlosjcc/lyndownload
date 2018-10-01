@@ -27,6 +27,7 @@ flag="0"
 sect=""
 vid_name=""
 vid_add=""
+vid_num=1
 
 # download the course main website
 wget -O "$course_main" $course
@@ -41,6 +42,9 @@ while read -r line; do
 
   # new section
   if [[ $line =~ $section_regex ]]; then
+
+    vid_num=1
+
     sect="${BASH_REMATCH[1]}"
     echo "$sect"
     # make folder for the new section and change to it
@@ -62,7 +66,15 @@ while read -r line; do
     # get line of code from temp.html, get the url, change amp; for nothing THATS THE VIDs URL! BINGO!!!
     vid_url=`grep "data-src=\"https://lynda" "$root_dir/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
 
-    wget --output-document="$root_dir/$sect/$vid_name" "$vid_url"
+    # download video
+    echo -e "*****************************************"
+    echo -e "vid address $vid_url"
+    echo -e "*****************************************"
+
+    # when it fails $vid_url is empty!!!!!!!!!!
+    wget --output-document="$root_dir/$sect/$vid_num. $vid_name" "$vid_url"
+
+    ((vid_num++))
 
     # echo "$vid_name"
     # echo "$vid_add"
@@ -70,41 +82,3 @@ while read -r line; do
   fi
 done <<< "$var"
 
-# while read line; do
-
-#   # echo "hola"
-#   # if [[ $flag == "1" ]]; then
-#   #   # echo "tomela"
-#   #   echo "name:  $line"
-#   #   echo "link: $vid"
-#   #   flag="0"
-#   # fi
-
-#   # new secion?
-#   if [[ $line =~ $section_regex ]]; then
-
-#     # go to "root" dir
-#     cd "$root_dir"
-
-#     # get name of the section
-#     sect="${BASH_REMATCH[1]}"
-
-#     # make folder for the new section and change to it
-#     mkdir "$sect" # && cd "$sect"
-
-#   fi
-
-#   if [[ $line =~ $videos_regex ]]; then
-
-#     # addres of the video
-#     vid="${BASH_REMATCH[1]}"
-
-#     # download html do get vids address
-#     wget --output-document="$root_dir/$sect/temp.html" --load-cookies cookies.txt "$vid"
-
-#     # get line of code from temp.html, get the url, change amp; for nothing THATS THE VIDs URL! BINGO!!!
-#     vid_url=`grep "data-src=\"https://lynda" "$root_dir/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
-
-#     # wget --output-document="$root_dir/$sect/temp.html"
-#   fi
-# done < $course_main
