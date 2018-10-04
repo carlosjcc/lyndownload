@@ -1,34 +1,27 @@
 #!/bin/bash
 
-# z5032935@ad.unsw.edu.au 15corrale$
-
-# https://www.lynda.com/signin/link-social
-# name email carloscorralesch@gmail.com  
-# password 15CARlos
-
-# <a\s+|<h4
-
-# downloading course
-root_dir=`pwd`
-# echo "$root_dir"
-
-# main html name
-course_main="course_main.html"
-
-# course link
-course_link="$1"
-course_path="$2"
-
-
+# regex declaration
 section_regex="<h4.*toc\-chapter.*>(.*)<"
-# videos_regex="\s*<a href=\"(.*)\">\s+(.*)"
 videos_regex="<a href=\"(.*)\".*class=\"item-name video-name ga\".*>"
 name_regex="[ \'a-zA-Z]*"
 sect_regex="[0-9]+.*"
 
+# command line arguments
+# course link
+course_link="$1"
 
-flag="0"
+# course path
+course_path="$2"
 
+# main html name
+course_main="course_main.html"
+
+# create new course folder
+if [[ ! -d "$course_path" ]]; then
+  mkdir "$course_path"
+fi
+
+# globals
 sect=""
 last_sect=""
 vid_name=""
@@ -36,12 +29,14 @@ vid_add=""
 vid_num=1
 
 # download the course main website
-wget -O "$course_path/$course_main" $course_link
+wget --output-document="$course_path/course_main.html" $course_link
 
-# info of all sections of videos of each section
-var=`grep -e "<h4.*toc\-chapter.*>.*<" -A 1 -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" course_main.html | grep -v "</div>" | sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
+# info of all sections and videos
+info=`grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
+      grep -v "</div>" |\
+      sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
 
-
+# read info of the course and parse
 while read -r line; do
 
   # new section
@@ -74,21 +69,9 @@ while read -r line; do
     wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt "$vid_add"
 
     # get line of code from temp.html, get the url, change "amp;" for nothing THATS THE VIDs URL! BINGO!!!
-    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
-
-    # debug
-    # download video
-    # echo -e "*****************************************"
-    # echo -e "vid address $vid_url"
-    # echo -e "*****************************************"
-
-    # if [[ $vid_url = "" ]]; then
-    #   exit
-    # fi
-
-    # while [[ $vid_url = "" ]]; do
-    #   vid_url=`grep "data-src=\"https://lynda" "$root_dir/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
-    # done
+    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/temp.html" |\
+             cut -f2 -d\" |\
+             sed 's/amp;//'`
 
     # download video. when it fails $vid_url is empty!!!!!!!!!!
     wget --output-document="$course_path/$sect/$vid_num. $vid_name" "$vid_url"
@@ -97,7 +80,7 @@ while read -r line; do
     ((vid_num++))
 
   fi
-done <<< "$var"
+done <<< "$info"
 
 # cleanup
 rm "$course_path/course_main.html"
@@ -107,7 +90,3 @@ mv "$course_path/Introduction" "$course_path/0. Introduction"
 ((last_sect++))
 
 mv "$course_path/Conclusion" "$course_path/$last_sect. Conclusion"
-
-
-
-# ls | egrep "^[0-9]+.*"
