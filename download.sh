@@ -16,7 +16,9 @@ root_dir=`pwd`
 course_main="course_main.html"
 
 # course link
-course="$1"
+course_link="$1"
+course_path="$2"
+
 
 section_regex="<h4.*toc\-chapter.*>(.*)<"
 # videos_regex="\s*<a href=\"(.*)\">\s+(.*)"
@@ -34,7 +36,7 @@ vid_add=""
 vid_num=1
 
 # download the course main website
-wget -O "$course_main" $course
+wget -O "$course_path/$course_main" $course_link
 
 # info of all sections of videos of each section
 var=`grep -e "<h4.*toc\-chapter.*>.*<" -A 1 -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" course_main.html | grep -v "</div>" | sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
@@ -57,7 +59,7 @@ while read -r line; do
     fi
 
     # make folder for the new section and change to it
-    mkdir "$sect"
+    mkdir "$course_path/$sect"
 
   # otherwise get video address
   elif [[ $line =~ $videos_regex ]]; then
@@ -69,10 +71,10 @@ while read -r line; do
     vid_name="$line"
 
     # download html do get vids address
-    wget --output-document="$root_dir/$sect/temp.html" --load-cookies cookies.txt "$vid_add"
+    wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt "$vid_add"
 
     # get line of code from temp.html, get the url, change "amp;" for nothing THATS THE VIDs URL! BINGO!!!
-    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$root_dir/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
+    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/temp.html" | cut -f2 -d\" | sed 's/amp;//'`
 
     # debug
     # download video
@@ -89,7 +91,7 @@ while read -r line; do
     # done
 
     # download video. when it fails $vid_url is empty!!!!!!!!!!
-    wget --output-document="$root_dir/$sect/$vid_num. $vid_name" "$vid_url"
+    wget --output-document="$course_path/$sect/$vid_num. $vid_name" "$vid_url"
 
     # keeping track of num of vid within each section
     ((vid_num++))
@@ -98,13 +100,13 @@ while read -r line; do
 done <<< "$var"
 
 # cleanup
-rm "$root_dir/course_main.html"
+rm "$course_path/course_main.html"
 
-mv "Introduction" "0. Introduction"
+mv "$course_path/Introduction" "$course_path/0. Introduction"
 
 ((last_sect++))
 
-mv "Conclusion" "$last_sect. Conclusion"
+mv "$course_path/Conclusion" "$course_path/$last_sect. Conclusion"
 
 
 
