@@ -27,7 +27,7 @@ vid_num=1
 course_name=""
 
 # download the course main website
-wget --output-document="$download_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
+wget -c --output-document="$download_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
 
 # get title of the course
 title=`grep "<title>.*</title>" "$download_path/course_main.html"`
@@ -54,7 +54,7 @@ ex_file_line=`grep "href=\"/ajax/course/[0-9]*/download/exercise/[0-9]*\"" "$cou
 # download exercise files, if any
 if [[ $ex_file_line =~ $exer_fl_rgx ]]; then
   ex_file_add="${BASH_REMATCH[1]}"
-  wget --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet --show-progress "https://www.lynda.com/$ex_file_add"
+  wget -c --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet --show-progress "https://www.lynda.com/$ex_file_add"
 fi
 
 # info of all sections and videos
@@ -86,8 +86,7 @@ while read -r line; do
     # make folder for the new section and change to it
     if [[ ! -d "$course_path/$sect" ]]; then
       mkdir "$course_path/$sect"
-    fi
-    
+    fi    
 
   # otherwise get video address
   elif [[ $line =~ $videos_regex ]]; then
@@ -96,7 +95,9 @@ while read -r line; do
 
   # if we find a name we got the name and the video address, we can download it!
   elif [[ $line =~ $name_regex ]]; then
-    vid_name="$line"
+
+    # change names containing forward slash for a hyphen
+    vid_name=`echo "$line" | sed 's/\//-/'`
 
     # download html do get vids address
     wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt --quiet "$vid_add"
@@ -107,7 +108,7 @@ while read -r line; do
              sed 's/amp;//'`
     
     # fails if file has / in name
-    wget --output-document="$course_path/$sect/$vid_num. $vid_name" --quiet --show-progress "$vid_url"
+    wget -c --output-document="$course_path/$sect/$vid_num. $vid_name" --quiet --show-progress "$vid_url"
 
     # keeping track of num of vid within each section
     ((vid_num++))
