@@ -22,7 +22,9 @@ if [[ ! -d "$course_path" ]]; then
 fi
 
 # globals
+prev_sect=""
 sect=""
+
 last_sect=""
 vid_name=""
 vid_add=""
@@ -42,11 +44,15 @@ while read -r line; do
   # new section
   if [[ $line =~ $section_regex ]]; then
 
+    if [[ -f "$course_path/$sect/temp.html" ]]; then
+      rm "$course_path/$sect/temp.html"
+    fi
+
     # restart video count per section
     vid_num=1
 
     # get name of section
-    sect="${BASH_REMATCH[1]}"
+    sect="${BASH_REMATCH[1]}"    
 
     # keep track of last numbered section to rename conclusion with a number
     if [[ $sect =~ $sect_regex ]]; then
@@ -82,11 +88,24 @@ while read -r line; do
   fi
 done <<< "$info"
 
+# remove temp from last downloaded section
+if [[ -f "$course_path/$sect/temp.html" ]]; then
+  rm "$course_path/$sect/temp.html"
+fi
+
 # cleanup
 rm "$course_path/course_main.html"
 
-mv "$course_path/Introduction" "$course_path/0. Introduction"
+# rename Introduction
+if [[ -d "$course_path/$sect/Introduction" ]]; then
+  mv "$course_path/Introduction" "$course_path/0. Introduction"
+fi
 
 ((last_sect++))
 
-mv "$course_path/Conclusion" "$course_path/$last_sect. Conclusion"
+# rename Conclusion
+if [[ -d "$course_path/Conclusion" ]]; then
+  mv "$course_path/Conclusion" "$course_path/$last_sect. Conclusion"
+fi
+
+
