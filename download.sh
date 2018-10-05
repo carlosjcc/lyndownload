@@ -3,8 +3,9 @@
 # regex declaration
 section_regex="<h4.*toc\-chapter.*>(.*)<"
 videos_regex="<a href=\"(.*)\".*class=\"item-name video-name ga\".*>"
-name_regex="[ \'a-zA-Z]*"
+name_regex="[ \'a-zA-Z0-9]*"
 sect_regex="[0-9]+.*"
+exer_fl_rgx="href=\"(/ajax/course/[0-9]*/download/exercise/[0-9]*)\""
 
 # command line arguments
 # course link
@@ -31,7 +32,15 @@ vid_add=""
 vid_num=1
 
 # download the course main website
-wget --output-document="$course_path/course_main.html" $course_link
+wget --output-document="$course_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
+
+ex_file_line=`grep "href=\"/ajax/course/[0-9]*/download/exercise/[0-9]*\"" "$course_path/$course_main"`
+
+# download exercise files, if any
+if [[ $ex_file_line =~ $exer_fl_rgx ]]; then
+  ex_file_add="${BASH_REMATCH[1]}"
+  wget --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet "https://www.lynda.com/$ex_file_add"
+fi
 
 # info of all sections and videos
 info=`grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
@@ -52,7 +61,7 @@ while read -r line; do
     vid_num=1
 
     # get name of section
-    sect="${BASH_REMATCH[1]}"    
+    sect="${BASH_REMATCH[1]}"
 
     # keep track of last numbered section to rename conclusion with a number
     if [[ $sect =~ $sect_regex ]]; then
@@ -60,7 +69,10 @@ while read -r line; do
     fi
 
     # make folder for the new section and change to it
-    mkdir "$course_path/$sect"
+    if [[ ! -d "$course_path/$sect" ]]; then
+      mkdir "$course_path/$sect"
+    fi
+    
 
   # otherwise get video address
   elif [[ $line =~ $videos_regex ]]; then
@@ -72,15 +84,14 @@ while read -r line; do
     vid_name="$line"
 
     # download html do get vids address
-    wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt "$vid_add"
+    wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt --quiet "$vid_add"
 
     # get line of code from temp.html, get the url, change "amp;" for nothing THATS THE VIDs URL! BINGO!!!
     vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/temp.html" |\
              cut -f2 -d\" |\
              sed 's/amp;//'`
-
-    # download video. when it fails $vid_url is empty!!!!!!!!!!
-    wget --output-document="$course_path/$sect/$vid_num. $vid_name" "$vid_url"
+    
+    wget --output-document="$course_path/$sect/$vid_num. $vid_name" --quiet --show-progress "$vid_url"
 
     # keeping track of num of vid within each section
     ((vid_num++))
@@ -97,7 +108,7 @@ fi
 rm "$course_path/course_main.html"
 
 # rename Introduction
-if [[ -d "$course_path/$sect/Introduction" ]]; then
+if [[ -d "$course_path/Introduction" ]]; then
   mv "$course_path/Introduction" "$course_path/0. Introduction"
 fi
 
@@ -109,3 +120,7 @@ if [[ -d "$course_path/Conclusion" ]]; then
 fi
 
 
+# we finished
+echo -ne '\007'
+echo -ne '\007'
+echo -ne '\007'
