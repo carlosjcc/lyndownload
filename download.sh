@@ -6,21 +6,15 @@ videos_regex="<a href=\"(.*)\".*class=\"item-name video-name ga\".*>"
 name_regex="[ \'a-zA-Z0-9]*"
 sect_regex="[0-9]+.*"
 exer_fl_rgx="href=\"(/ajax/course/[0-9]*/download/exercise/[0-9]*)\""
+course_name_rgx="<title>(.*)</title>"
 
 # command line arguments
 # course link
 course_link="$1"
 
 # course path
-course_path="$2"
+download_path="$2"
 
-# main html name
-course_main="course_main.html"
-
-# create new course folder
-if [[ ! -d "$course_path" ]]; then
-  mkdir "$course_path"
-fi
 
 # globals
 prev_sect=""
@@ -30,16 +24,37 @@ last_sect=""
 vid_name=""
 vid_add=""
 vid_num=1
+course_name=""
 
 # download the course main website
-wget --output-document="$course_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
+wget --output-document="$download_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
 
-ex_file_line=`grep "href=\"/ajax/course/[0-9]*/download/exercise/[0-9]*\"" "$course_path/$course_main"`
+# get title of the course
+title=`grep "<title>.*</title>" "$download_path/course_main.html"`
+
+# get course name
+if [[ $title =~ $course_name_rgx ]]; then
+  course_name="${BASH_REMATCH[1]}"
+fi
+
+# create new course folder
+if [[ ! -d "$download_path/$course_name" ]]; then
+  mkdir "$download_path/$course_name"
+fi
+
+# move main html to new folder
+mv "$download_path/course_main.html" "$download_path/$course_name"
+
+# path to the course folder
+course_path="$download_path/$course_name"
+
+# get the line with the exercise files
+ex_file_line=`grep "href=\"/ajax/course/[0-9]*/download/exercise/[0-9]*\"" "$course_path/course_main.html"`
 
 # download exercise files, if any
 if [[ $ex_file_line =~ $exer_fl_rgx ]]; then
   ex_file_add="${BASH_REMATCH[1]}"
-  wget --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet "https://www.lynda.com/$ex_file_add"
+  wget --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet --show-progress "https://www.lynda.com/$ex_file_add"
 fi
 
 # info of all sections and videos
@@ -91,6 +106,7 @@ while read -r line; do
              cut -f2 -d\" |\
              sed 's/amp;//'`
     
+    # fails if file has / in name
     wget --output-document="$course_path/$sect/$vid_num. $vid_name" --quiet --show-progress "$vid_url"
 
     # keeping track of num of vid within each section
