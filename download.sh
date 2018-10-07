@@ -25,6 +25,7 @@ vid_name=""
 vid_add=""
 vid_num=1
 course_name=""
+n=1
 
 # download the course main website
 wget -c --output-document="$download_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
@@ -57,10 +58,14 @@ if [[ $ex_file_line =~ $exer_fl_rgx ]]; then
   wget -c --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet --show-progress "https://www.lynda.com/$ex_file_add"
 fi
 
-# info of all sections and videos
-info=`grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
-      grep -v "</div>" |\
-      sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
+# get all html lines from all sections and videos and store it in a file
+grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
+grep -v "</div>" |\
+sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d' > "$course_path/info.txt"
+
+echo "1" > "$course_path/n.txt"
+n=`cat "$course_path/n.txt"`
+echo "----------------- $n"
 
 # read info of the course and parse
 while read -r line; do
@@ -112,9 +117,14 @@ while read -r line; do
 
     # keeping track of num of vid within each section
     ((vid_num++))
-
   fi
-done <<< "$info"
+
+  # update last visited line
+  ((n++))
+  echo "$n" > "$course_path/n.txt"
+done < <(tail -n "+$n" "$course_path/info.txt")
+
+
 
 # remove temp from last downloaded section
 if [[ -f "$course_path/$sect/temp.html" ]]; then
