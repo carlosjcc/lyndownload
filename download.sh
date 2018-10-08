@@ -58,14 +58,10 @@ if [[ $ex_file_line =~ $exer_fl_rgx ]]; then
   wget -c --load-cookies ~/Downloads/cookies.txt --output-document="$course_path/excFiles.zip" --quiet --show-progress "https://www.lynda.com/$ex_file_add"
 fi
 
-# get all html lines from all sections and videos and store it in a file
-grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
-grep -v "</div>" |\
-sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d' > "$course_path/info.txt"
-
-echo "1" > "$course_path/n.txt"
-n=`cat "$course_path/n.txt"`
-echo "----------------- $n"
+# info of all sections and videos
+info=`grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-name video-name ga\".*>" "$course_path/course_main.html" |\
+      grep -v "</div>" |\
+      sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
 
 # read info of the course and parse
 while read -r line; do
@@ -82,6 +78,7 @@ while read -r line; do
 
     # get name of section
     sect="${BASH_REMATCH[1]}"
+    sect=`echo "$sect" | sed 's/\//-/'`
 
     # keep track of last numbered section to rename conclusion with a number
     if [[ $sect =~ $sect_regex ]]; then
@@ -118,13 +115,7 @@ while read -r line; do
     # keeping track of num of vid within each section
     ((vid_num++))
   fi
-
-  # update last visited line
-  ((n++))
-  echo "$n" > "$course_path/n.txt"
-done < <(tail -n "+$n" "$course_path/info.txt")
-
-
+done <<< "$info"
 
 # remove temp from last downloaded section
 if [[ -f "$course_path/$sect/temp.html" ]]; then
