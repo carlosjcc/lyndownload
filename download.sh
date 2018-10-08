@@ -77,6 +77,7 @@ while read -r line; do
 
     # get name of section
     sect="${BASH_REMATCH[1]}"
+    sect=`echo "$sect" | sed 's/\//-/'`
 
     # keep track of last numbered section to rename conclusion with a number
     if [[ $sect =~ $sect_regex ]]; then
