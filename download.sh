@@ -25,6 +25,7 @@ vid_name=""
 vid_add=""
 vid_num=1
 course_name=""
+n=1
 
 # download the course main website
 wget -c --output-document="$download_path/course_main.html" --load-cookies ~/Downloads/cookies.txt --quiet $course_link
@@ -62,6 +63,7 @@ info=`grep -A 1 -e "<h4.*toc\-chapter.*>.*<" -e "<a href=\".*\".*class=\"item-na
       grep -v "</div>" |\
       sed -e 's/^\s*//' -e '/^$/d' -e 's/--//' -e '/^\s*$/d'`
 
+
 # read info of the course and parse
 while read -r line; do
 
@@ -87,7 +89,7 @@ while read -r line; do
     # make folder for the new section and change to it
     if [[ ! -d "$course_path/$sect" ]]; then
       mkdir "$course_path/$sect"
-    fi    
+    fi
 
   # otherwise get video address
   elif [[ $line =~ $videos_regex ]]; then
@@ -100,11 +102,13 @@ while read -r line; do
     # change names containing forward slash for a hyphen
     vid_name=`echo "$line" | sed 's/\//-/'`
 
-    # download html do get vids address
-    wget --output-document="$course_path/$sect/temp.html" --load-cookies ~/Downloads/cookies.txt --quiet "$vid_add"
+    # download html do get vids address | this could be a bug if the html didnt download fully
+    if [[ ! -f "$course_path/$sect/$vid_num. $vid_name.html" ]]; then
+      wget -c --output-document="$course_path/$sect/$vid_num. $vid_name.html" --load-cookies ~/Downloads/cookies.txt --quiet "$vid_add"
+    fi    
 
     # get line of code from temp.html, get the url, change "amp;" for nothing THATS THE VIDs URL! BINGO!!!
-    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/temp.html" |\
+    vid_url=`grep -e "data-src=\"https://lynda" -e "data-src=\"https://files[0-9]\.lynda" "$course_path/$sect/$vid_num. $vid_name.html" |\
              cut -f2 -d\" |\
              sed 's/amp;//'`
     
@@ -113,7 +117,6 @@ while read -r line; do
 
     # keeping track of num of vid within each section
     ((vid_num++))
-
   fi
 done <<< "$info"
 
